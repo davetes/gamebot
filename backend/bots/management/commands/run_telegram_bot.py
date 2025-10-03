@@ -2,7 +2,7 @@ import sqlite3
 import asyncio
 from datetime import datetime
 from pathlib import Path
-from telegram import BotCommand, Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import BotCommand, Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
 from telegram.request import HTTPXRequest
 from django.core.management.base import BaseCommand, CommandError
@@ -92,6 +92,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_registered(user.id):
         await send_registration_prompt(update, context, with_keyboard=True)
 
+    webapp_url = os.environ.get("LEADERBOARD_WEBAPP_URL")
+    leaderboard_btn = (
+        InlineKeyboardButton("🏅 Leaderboard", web_app=WebAppInfo(url=webapp_url))
+        if webapp_url else InlineKeyboardButton("🏅 Leaderboard", callback_data="leaderboard")
+    )
+
     keyboard = [
         [InlineKeyboardButton("🎮 Play Now", callback_data="play_now")],
         [
@@ -108,7 +114,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
         [
             InlineKeyboardButton("👤 Change Username", callback_data="change_username"),
-            InlineKeyboardButton("🏅 Leaderboard", callback_data="leaderboard"),
+            leaderboard_btn,
         ],
     ]
 
@@ -239,7 +245,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Start username change flow (handled in profile.py)
         await prompt_change_username(update, context)
     elif query.data == "leaderboard":
-        await query.edit_message_text("🏅 *Leaderboard*\n\nCheck the top players ranking", parse_mode='Markdown')
+        # Open Telegram Mini App (WebApp) for the leaderboard
+        webapp_url = os.environ.get("LEADERBOARD_WEBAPP_URL")
+        if not webapp_url:
+            await query.message.reply_text(
+                "Leaderboard is not configured. Set LEADERBOARD_WEBAPP_URL in your environment.")
+        else:
+            await query.message.reply_text(
+                "🏅 Leaderboard",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("Open Leaderboard", web_app=WebAppInfo(url=webapp_url))]
+                ]),
+            )
 
 
 async def play(update: Update, context: ContextTypes.DEFAULT_TYPE):

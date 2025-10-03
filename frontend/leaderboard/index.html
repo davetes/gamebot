@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cartela Bingo - Leaderboard</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --primary: #6a11cb;
+      --primary-2: #2575fc;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #0ea5e9;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: var(--bg);
+      color: var(--text);
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 16px; }
+    .header { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+    .logo { width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #ffd166, #ef476f, #118ab2); display: grid; place-items: center; color: #fff; font-weight: 700; }
+    .title { font-size: 20px; font-weight: 700; }
+
+    .tab {
+      background: linear-gradient(90deg, var(--primary), var(--primary-2));
+      color: #fff; border-radius: 12px; padding: 10px 14px; display: grid; grid-template-columns: 90px 1fr 100px 100px; gap: 8px; align-items: center; box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+    }
+    .tab span { font-weight: 600; }
+
+    .card { background: var(--card); border-radius: 16px; padding: 20px; margin-top: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.06); }
+
+    .rows { display: grid; gap: 8px; margin-top: 12px; }
+    .row { background: #fff; border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: 90px 1fr 100px 100px; gap: 8px; align-items: center; border: 1px solid #edf2f7; }
+    .rank { font-weight: 700; color: var(--primary); }
+    .name { font-weight: 600; }
+    .points { color: var(--text); }
+    .prize { color: var(--muted); }
+
+    .center { display: grid; place-items: center; margin: 20px 0; }
+    .btn {
+      appearance: none; border: 0; border-radius: 999px; padding: 12px 22px; background: var(--accent); color: #fff; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 10px 24px rgba(14,165,233,0.35);
+    }
+
+    .footer { display: flex; justify-content: space-between; align-items: center; color: var(--muted); margin: 40px 0 8px; }
+    .moon { width: 36px; height: 36px; border: 2px solid var(--muted); border-radius: 50%; display: grid; place-items: center; font-size: 14px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">CB</div>
+      <div class="title">Cartela Bingo</div>
+    </div>
+
+    <div class="card">
+      <div class="tab">
+        <span>Rank</span>
+        <span>Player</span>
+        <span>Points</span>
+        <span>Prize</span>
+      </div>
+
+      <div id="rows" class="rows"></div>
+
+      <div class="center">
+        <button id="refresh" class="btn">&#8635; Refresh Data</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>Copyright © Allora-Groups 2025</div>
+      <div id="mode" class="moon">&#9789;</div>
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      // Apply Telegram theme variables when available
+      document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color || '#f4f7fb');
+      document.documentElement.style.setProperty('--card', tg.themeParams.secondary_bg_color || '#ffffff');
+      document.documentElement.style.setProperty('--text', tg.themeParams.text_color || '#1f2937');
+    }
+
+    const rowsEl = document.getElementById('rows');
+    const refreshBtn = document.getElementById('refresh');
+    const modeBtn = document.getElementById('mode');
+
+    function renderRows(data) {
+      rowsEl.innerHTML = '';
+      if (!data || data.length === 0) return;
+      for (const item of data) {
+        const div = document.createElement('div');
+        div.className = 'row';
+        div.innerHTML = `
+          <div class="rank">${item.rank}</div>
+          <div class="name">${item.player}</div>
+          <div class="points">${item.points}</div>
+          <div class="prize">${item.prize}</div>
+        `;
+        rowsEl.appendChild(div);
+      }
+    }
+
+    async function fetchData() {
+      try {
+        // Placeholder: Replace with your API endpoint if available
+        // const r = await fetch('/api/leaderboard');
+        // const data = await r.json();
+        const data = [
+          { rank: 1, player: 'Alice', points: 1200, prize: '500 ETB' },
+          { rank: 2, player: 'Bob', points: 980, prize: '300 ETB' },
+          { rank: 3, player: 'Carol', points: 850, prize: '150 ETB' },
+        ];
+        renderRows(data);
+      } catch (e) {
+        console.error('Leaderboard fetch failed', e);
+        renderRows([]);
+      }
+    }
+
+    refreshBtn.addEventListener('click', fetchData);
+    fetchData();
+
+    // Simple light/dark toggle (local only)
+    let dark = false;
+    modeBtn.addEventListener('click', () => {
+      dark = !dark;
+      document.documentElement.style.setProperty('--bg', dark ? '#0f172a' : '#f4f7fb');
+      document.documentElement.style.setProperty('--card', dark ? '#111827' : '#ffffff');
+      document.documentElement.style.setProperty('--text', dark ? '#e5e7eb' : '#1f2937');
+      document.documentElement.style.setProperty('--muted', dark ? '#9ca3af' : '#6b7280');
+    });
+  </script>
+</body>
+</html>
