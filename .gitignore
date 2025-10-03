@@ -22,6 +22,8 @@ wheels/
 
 # Virtual environments
 .env
+.env.*
+*.env
 .venv
 env/
 venv/
@@ -31,6 +33,7 @@ ENV/
 *.db
 *.sqlite
 *.sqlite3
+usage.db
 
 # OS files
 .DS_Store
@@ -41,7 +44,30 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+*.code-workspace
 
 # Logs
 *.log
 logs/
+
+# Testing & type checking
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage*
+
+# Django
+backend/**/migrations/*.py
+!backend/**/migrations/__init__.py
+backend/staticfiles/
+backend/media/
+
+# Node/Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.nuxt/
+frontend/dist/
+frontend/build/
+frontend/.parcel-cache/
+frontend/.vite/
+frontend/.turbo/
