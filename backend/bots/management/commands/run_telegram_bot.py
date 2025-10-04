@@ -17,6 +17,7 @@ from bots.registration import (
     send_registration_prompt,
     ensure_referral_column,
     record_referral_if_missing,
+    handle_register_cancel,
 )
 from bots.finance import (
     ensure_user_finance_columns,
@@ -394,6 +395,8 @@ class Command(BaseCommand):
         app.add_handler(CommandHandler("contact", contact))
         app.add_handler(CallbackQueryHandler(button_handler))
         app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
+        # Register Cancel handler BEFORE the generic text handler (case-insensitive)
+        app.add_handler(MessageHandler(filters.TEXT & filters.Regex("(?i)^cancel$"), handle_register_cancel))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_username_text))
 
         async def on_startup(app_instance):

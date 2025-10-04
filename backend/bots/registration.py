@@ -77,7 +77,10 @@ def record_referral_if_missing(user_id: int, referrer_id: int):
 
 
 def build_register_keyboard() -> ReplyKeyboardMarkup:
-    kb = [[KeyboardButton(text="📲 Share phone", request_contact=True)]]
+    kb = [[
+        KeyboardButton(text="📲 Share Phone Number", request_contact=True),
+        KeyboardButton(text="Cancel"),
+    ]]
     return ReplyKeyboardMarkup(kb, resize_keyboard=True, one_time_keyboard=True)
 
 
@@ -116,6 +119,9 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✅ Registration completed. Thank you!",
         reply_markup=ReplyKeyboardRemove(),
     )
+
+    # Clear any lingering register flow state if present
+    context.user_data.pop("awaiting_registration", None)
 
     # Referral bonus: if this user was referred, add coins to inviter
     try:
@@ -187,3 +193,13 @@ async def send_registration_prompt(update: Update, context: ContextTypes.DEFAULT
             await update.message.reply_text(text)
         elif update.callback_query and update.callback_query.message:
             await update.callback_query.message.reply_text(text)
+
+
+async def handle_register_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle the Cancel button during registration: remove keyboard and remind user of /register."""
+    if update.message and update.message.text.strip().lower() == "cancel":
+        await update.message.reply_text(
+            "Registration canceled. You can register anytime with /register.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        # Keep gating in effect by not marking them registered.
