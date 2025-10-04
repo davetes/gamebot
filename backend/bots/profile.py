@@ -21,6 +21,20 @@ def ensure_username_column():
         conn.close()
 
 
+def get_username(user_id: int) -> str | None:
+    """Return stored username from DB if present, else None."""
+    conn = sqlite3.connect(DB_FILE)
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT username FROM users WHERE user_id = ?", (user_id,))
+        row = cur.fetchone()
+        if row and row[0]:
+            return str(row[0])
+        return None
+    finally:
+        conn.close()
+
+
 def set_username(user_id: int, username: str) -> None:
     conn = sqlite3.connect(DB_FILE)
     try:

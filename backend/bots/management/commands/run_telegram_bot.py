@@ -15,6 +15,8 @@ from bots.registration import (
     build_register_keyboard,
     is_registered,
     send_registration_prompt,
+    ensure_referral_column,
+    record_referral_if_missing,
 )
 from bots.finance import (
     ensure_user_finance_columns,
@@ -25,7 +27,9 @@ from bots.profile import (
     ensure_username_column,
     prompt_change_username,
     handle_username_text,
+    get_username,
 )
+from bots.invite import send_invite
 
 # -----------------------
 # Database Setup
@@ -87,6 +91,16 @@ async def log_user_usage(user_id, username):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     await log_user_usage(user.id, user.username or "")
+
+    # Handle deep-link referrals: /start <referrer_id>
+    try:
+        if context.args and len(context.args) > 0:
+            referrer_str = context.args[0].strip()
+            if referrer_str.isdigit():
+                ref_id = int(referrer_str)
+                record_referral_if_missing(user.id, ref_id)
+    except Exception as e:
+        print(f"Referral parse failed: {e}")
 
     # First-time gating: prompt registration if not registered (with share-phone keyboard)
     if not is_registered(user.id):
@@ -153,8 +167,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = query.from_user
     await log_user_usage(user.id, user.username or "")
 
-    # First-time gating for button clicks: block everything except 'register'
-    if query.data not in {"register"} and not is_registered(user.id):
+    # First-time gating for button clicks: allow 'register' and 'invite' before registration
+    if query.data not in {"register", "invite"} and not is_registered(user.id):
         await query.message.reply_text("Before you continue, please finish registration. Use /register. Thanks!")
         return
 
@@ -162,7 +176,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("🎮 *Starting a new Bingo game...*\n\nGet ready to play!", parse_mode='Markdown')
     elif query.data == "check_balance":
         # Show formatted balance using a code block
-        username = (query.from_user.username or "-")
+        # Prefer custom username stored in DB; fallback to Telegram username
+        stored = get_username(query.from_user.id)
+        username = stored or (query.from_user.username or "-")
         bal, coin = get_user_finance(query.from_user.id)
         msg = format_balance_block(username, bal, coin)
         await query.message.reply_text(msg, parse_mode='HTML', disable_web_page_preview=True)
@@ -207,7 +223,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=build_register_keyboard(),
         )
     elif query.data == "invite":
-        await query.edit_message_text("📤 *Invite Friends*\n\nUse /invite to share with friends", parse_mode='Markdown')
+        # Send a new message with deep-link instead of editing (editing may fail on media messages)
+        await send_invite(update, context)
     elif query.data == "win_patterns":
         win_patterns_text = (
             "🎯 *From straight lines to funky shapes – every pattern is a chance to WIN BIG!*\n\n"
@@ -276,7 +293,8 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_registration_prompt(update, context, with_keyboard=True)
         return
     bal, coin = get_user_finance(user.id)
-    username = user.username or "-"
+    stored = get_username(user.id)
+    username = stored or (user.username or "-")
     msg = format_balance_block(username, bal, coin)
     await update.message.reply_text(msg, parse_mode='HTML', disable_web_page_preview=True)
 
@@ -343,6 +361,7 @@ class Command(BaseCommand):
         ensure_users_table()
         ensure_user_finance_columns()
         ensure_username_column()
+        ensure_referral_column()
 
         # Read token from environment (.env is loaded by Django settings)
         token = os.environ.get("TELEGRAM_BOT_TOKEN")
@@ -371,6 +390,7 @@ class Command(BaseCommand):
         app.add_handler(CommandHandler("play", play))
         app.add_handler(CommandHandler("balance", balance))
         app.add_handler(CommandHandler("register", handle_register_command))
+        app.add_handler(CommandHandler("invite", send_invite))
         app.add_handler(CommandHandler("contact", contact))
         app.add_handler(CallbackQueryHandler(button_handler))
         app.add_handler(MessageHandler(filters.CONTACT, handle_contact))

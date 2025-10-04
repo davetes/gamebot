@@ -46,3 +46,23 @@ def format_balance_block(username: str, bal: float, coin: float) -> str:
         f"Coin:         {coin:.2f}"
     )
     return f"<pre>{body}</pre>"
+
+
+def add_coins(user_id: int, delta: float) -> None:
+    """Increment a user's coin balance by delta. Creates the row if missing."""
+    conn = sqlite3.connect(DB_FILE)
+    try:
+        cur = conn.cursor()
+        # Ensure user row exists
+        cur.execute("SELECT coin FROM users WHERE user_id = ?", (user_id,))
+        row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                "INSERT INTO users(user_id, phone, created_at, balance_etb, coin) VALUES(?, NULL, datetime('now'), 0.0, 0.0)",
+                (user_id,),
+            )
+        # Apply increment
+        cur.execute("UPDATE users SET coin = COALESCE(coin, 0) + ? WHERE user_id = ?", (float(delta), user_id))
+        conn.commit()
+    finally:
+        conn.close()

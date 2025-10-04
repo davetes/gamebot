@@ -11,6 +11,7 @@ from telegram import (
     InlineKeyboardMarkup,
 )
 from telegram.ext import ContextTypes
+from bots.finance import add_coins
 
 # Use the same DB location as the bot command
 DB_FILE = str(Path(settings.BASE_DIR).parent / "usage.db")
@@ -29,6 +30,47 @@ def ensure_users_table():
             )
             """
         )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def ensure_referral_column():
+    """Ensure the users table has a referred_by column."""
+    conn = sqlite3.connect(DB_FILE)
+    try:
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(users)")
+        cols = {row[1] for row in cur.fetchall()}
+        if "referred_by" not in cols:
+            cur.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def record_referral_if_missing(user_id: int, referrer_id: int):
+    """Insert user row if missing and set referred_by only if not already set and not self-referral."""
+    if referrer_id == user_id:
+        return
+    conn = sqlite3.connect(DB_FILE)
+    try:
+        cur = conn.cursor()
+        # Ensure row exists
+        cur.execute("SELECT referred_by FROM users WHERE user_id = ?", (user_id,))
+        row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                "INSERT INTO users(user_id, phone, created_at, referred_by) VALUES(?, NULL, ?, ?)",
+                (user_id, datetime.utcnow().isoformat(), referrer_id),
+            )
+        else:
+            current_ref = row[0]
+            if current_ref is None:
+                cur.execute(
+                    "UPDATE users SET referred_by = ? WHERE user_id = ? AND referred_by IS NULL",
+                    (referrer_id, user_id),
+                )
         conn.commit()
     finally:
         conn.close()
@@ -75,6 +117,20 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ReplyKeyboardRemove(),
     )
 
+    # Referral bonus: if this user was referred, add coins to inviter
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cur = conn.cursor()
+        cur.execute("SELECT referred_by FROM users WHERE user_id = ?", (user.id,))
+        row = cur.fetchone()
+        inviter_id = row[0] if row else None
+        conn.close()
+        if inviter_id:
+            add_coins(inviter_id, 10.0)
+    except Exception as e:
+        # Soft-fail: do not block registration completion
+        print(f"Referral bonus failed: {e}")
+
     # After successful registration, present the main menu WITHOUT the Register button
     keyboard = [
         [InlineKeyboardButton("🎮 Play Now", callback_data="play_now")],
@@ -108,10 +164,14 @@ Financial helpers moved to bots/finance.py (ensure_user_finance_columns, get_use
 
 
 def is_registered(user_id: int) -> bool:
+    """A user is considered registered only if we have a non-empty phone stored."""
     conn = sqlite3.connect(DB_FILE)
     try:
         cur = conn.cursor()
-        cur.execute("SELECT 1 FROM users WHERE user_id = ? LIMIT 1", (user_id,))
+        cur.execute(
+            "SELECT 1 FROM users WHERE user_id = ? AND phone IS NOT NULL AND TRIM(phone) <> '' LIMIT 1",
+            (user_id,),
+        )
         return cur.fetchone() is not None
     finally:
         conn.close()
