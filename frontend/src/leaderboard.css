@@ -1,0 +1,39 @@
+:root {
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --primary: #6a11cb;
+  --primary-2: #2575fc;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --accent: #0ea5e9;
+}
+html, body, #root { height: 100%; width: 100%; max-width: 100%; margin: 0; overflow-x: hidden; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); }
+.container { max-width: 100vw; width: 100vw; margin: 0; padding: 0; }
+.header { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.logo { width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #ffd166, #ef476f, #118ab2); display: grid; place-items: center; color: #fff; font-weight: 700; }
+.title { font-size: 20px; font-weight: 700; }
+
+.tab {
+  background: linear-gradient(90deg, var(--primary), var(--primary-2));
+  color: #fff; border-radius: 12px; padding: 10px 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; align-items: center; box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+}
+.tab span { font-weight: 600; }
+
+.card { background: var(--card); border-radius: 0; padding: 16px; margin: 0; box-shadow: none; width: 100vw; max-width: 100vw; }
+
+.rows { display: grid; gap: 8px; margin-top: 12px; overflow-x: hidden; width: 100%; }
+.row { background: #fff; border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; align-items: center; border: 1px solid #edf2f7; min-width: 0; max-width: 100%; }
+.rank { font-weight: 700; color: var(--primary); }
+.name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.points { color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.prize { color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+
+.center { display: grid; place-items: center; margin: 20px 0; }
+.btn {
+  appearance: none; border: 0; border-radius: 999px; padding: 12px 22px; background: var(--accent); color: #fff; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 10px 24px rgba(14,165,233,0.35);
+}
+
+.footer { display: flex; justify-content: space-between; align-items: center; color: var(--muted); margin: 40px 0 8px; }
+.moon { width: 36px; height: 36px; border: 2px solid var(--muted); border-radius: 50%; display: grid; place-items: center; font-size: 14px; cursor: pointer; }

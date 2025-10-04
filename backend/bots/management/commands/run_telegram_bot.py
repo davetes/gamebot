@@ -31,6 +31,7 @@ from bots.profile import (
     get_username,
 )
 from bots.invite import send_invite
+from bots.playnow import build_stake_selection, parse_bet_amount
 
 # -----------------------
 # Database Setup
@@ -53,6 +54,20 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+
+def _clean_webapp_url() -> str | None:
+    """Read LEADERBOARD_WEBAPP_URL, trim spaces, and ensure it's https://.
+    Returns None if invalid.
+    """
+    raw = os.environ.get("LEADERBOARD_WEBAPP_URL")
+    if not raw:
+        return None
+    url = raw.strip()
+    # Telegram requires HTTPS for WebApp URLs
+    if not url.lower().startswith("https://"):
+        return None
+    return url
 
 
 def get_monthly_user_count():
@@ -107,7 +122,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_registered(user.id):
         await send_registration_prompt(update, context, with_keyboard=True)
 
-    webapp_url = os.environ.get("LEADERBOARD_WEBAPP_URL")
+    webapp_url = _clean_webapp_url()
     leaderboard_btn = (
         InlineKeyboardButton("🏅 Leaderboard", web_app=WebAppInfo(url=webapp_url))
         if webapp_url else InlineKeyboardButton("🏅 Leaderboard", callback_data="leaderboard")
@@ -174,7 +189,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if query.data == "play_now":
-        await query.edit_message_text("🎮 *Starting a new Bingo game...*\n\nGet ready to play!", parse_mode='Markdown')
+        # Show stake selection like the screenshot
+        stake_text, stake_markup = build_stake_selection()
+        # Send a new message (editing may fail if previous message is media)
+        await query.message.reply_text(stake_text, reply_markup=stake_markup)
     elif query.data == "check_balance":
         # Show formatted balance using a code block
         # Prefer custom username stored in DB; fallback to Telegram username
@@ -189,6 +207,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Send the same contact info as the /contact command, as a new message
         contact_message = (
             "📞 **Contact Support**\n\n"
+            
             "For any questions or support, please contact:\n\n"
             "👤 **Username:** @nftesk\n"
             "📱 **Phone:** 0934455383\n\n"
@@ -264,7 +283,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await prompt_change_username(update, context)
     elif query.data == "leaderboard":
         # Open Telegram Mini App (WebApp) for the leaderboard
-        webapp_url = os.environ.get("LEADERBOARD_WEBAPP_URL")
+        webapp_url = _clean_webapp_url()
         if not webapp_url:
             await query.message.reply_text(
                 "Leaderboard is not configured. Set LEADERBOARD_WEBAPP_URL in your environment.")
@@ -274,6 +293,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("Open Leaderboard", web_app=WebAppInfo(url=webapp_url))]
                 ]),
+            )
+    elif query.data.startswith("bet_"):
+        amount = parse_bet_amount(query.data)
+        if amount is None:
+            await query.message.reply_text("Invalid bet selection.")
+        else:
+            await query.message.reply_text(
+                f"🎮 You selected {amount} ETB stake. Preparing your game…"
             )
 
 
