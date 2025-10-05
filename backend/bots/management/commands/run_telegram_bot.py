@@ -32,6 +32,7 @@ from bots.profile import (
 )
 from bots.invite import send_invite
 from bots.playnow import build_stake_selection, parse_bet_amount
+from bots.deposit import start_deposit, handle_text as handle_deposit_text, handle_deposit_method
 
 # -----------------------
 # Database Setup
@@ -202,7 +203,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = format_balance_block(username, bal, coin)
         await query.message.reply_text(msg, parse_mode='HTML', disable_web_page_preview=True)
     elif query.data == "make_deposit":
-        await query.edit_message_text("💳 *Make a Deposit*\n\nUse /deposit to add funds to your account", parse_mode='Markdown')
+        # Start guided deposit flow (min amount block -> ask amount -> method selection)
+        await start_deposit(update, context)
     elif query.data == "support":
         # Send the same contact info as the /contact command, as a new message
         contact_message = (
@@ -278,6 +280,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"🏆 *Win Patterns*\n\n{win_patterns_text}",
                 parse_mode='Markdown',
             )
+    elif query.data == "deposit_manual":
+        # User chose manual payment method in the deposit flow
+        await handle_deposit_method(update, context)
     elif query.data == "change_username":
         # Start username change flow (handled in profile.py)
         await prompt_change_username(update, context)
@@ -424,6 +429,8 @@ class Command(BaseCommand):
         app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
         # Register Cancel handler BEFORE the generic text handler (case-insensitive)
         app.add_handler(MessageHandler(filters.TEXT & filters.Regex("(?i)^cancel$"), handle_register_cancel))
+        # Deposit amount handler must be before the generic text handler
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_deposit_text))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_username_text))
 
         async def on_startup(app_instance):

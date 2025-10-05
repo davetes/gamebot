@@ -10,7 +10,7 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '127.0.0.1',
-      'processed-adventure-region-trance.trycloudflare.com',
+      'rooms-purple-frost-image.trycloudflare.com',
       /^.+\.trycloudflare\.com$/,
     ],
     host: true,
