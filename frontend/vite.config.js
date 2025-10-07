@@ -10,7 +10,7 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '127.0.0.1',
-      'rooms-purple-frost-image.trycloudflare.com',
+      'nutten-compared-hello-lions.trycloudflare.com',
       /^.+\.trycloudflare\.com$/,
     ],
     host: true,

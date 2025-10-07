@@ -9,3 +9,23 @@
 .bank-card img{width:64px;height:64px;object-fit:contain}
 .bank-card span{font-weight:600;color:#3a3a3a}
 .deposit-footer{margin-top:28px;text-align:center;color:#444}
+
+/* Modal styles */
+.modal-overlay{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal{width:min(480px,92vw);background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #eee}
+.modal-header h3{margin:0;color:#2b2b2b}
+.modal-close{background:transparent;border:none;font-size:22px;line-height:1;cursor:pointer}
+.modal-body{padding:14px}
+.acc-title{margin:4px 0 6px 0;color:#7b22a7;text-align:center}
+.acc-number{display:flex;align-items:center;gap:8px;justify-content:center;font-weight:800;font-size:20px;color:#1170db;margin-bottom:10px}
+.acc-number .copy{border:none;background:#f1f5ff;border-radius:8px;padding:6px 8px;cursor:pointer}
+.steps{margin:6px 0 14px 18px;color:#333}
+.steps li{margin:6px 0}
+.verify-title{font-weight:700;margin:8px 0}
+.verify-row{display:flex;gap:8px}
+.verify-row input{flex:1;border:1px solid #dcdcdc;border-radius:8px;padding:10px}
+.input-error{border-color:#e53935 !important; background:#fff8f8}
+.error-text{color:#e53935;font-size:12px;margin-top:6px}
+.verify-btn{background:#19c37d;border:none;color:#fff;font-weight:700;border-radius:8px;padding:10px 14px;cursor:pointer}
+.hint{color:#888;font-size:12px;margin-top:6px}

@@ -429,9 +429,9 @@ class Command(BaseCommand):
         app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
         # Register Cancel handler BEFORE the generic text handler (case-insensitive)
         app.add_handler(MessageHandler(filters.TEXT & filters.Regex("(?i)^cancel$"), handle_register_cancel))
-        # Deposit amount handler must be before the generic text handler
-        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_deposit_text))
+        # Username change handler must be before deposit handler to avoid conflicts
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_username_text))
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_deposit_text))
 
         async def on_startup(app_instance):
             try:
