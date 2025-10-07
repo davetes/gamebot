@@ -13,7 +13,12 @@ async def send_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Build deep links (both https and tg scheme) to maximize client compatibility
     payload = quote_plus(str(user.id))
     https_link = f"https://t.me/{bot_username}?start={payload}" if bot_username else None
-    tg_link = f"tg://resolve?domain={bot_username}&start={payload}" if bot_username else None
+    # Use Telegram share URL to let the user forward the link to friends directly inside Telegram
+    share_text = quote_plus("Join luckybet Bingo with my invite link and start playing!")
+    share_url = (
+        f"https://t.me/share/url?url={quote_plus(https_link)}&text={share_text}"
+        if https_link else None
+    )
 
     if bot_username:
         link_line = f"Link: {https_link}"
@@ -31,9 +36,9 @@ async def send_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard_rows = []
     if https_link:
-        keyboard_rows.append([InlineKeyboardButton("📨 Open in Telegram", url=https_link)])
-    if tg_link:
-        keyboard_rows.append([InlineKeyboardButton("📱 Open App (tg://)", url=tg_link)])
+        # Primary actions: Share to a friend, or open the bot link
+        keyboard_rows.append([InlineKeyboardButton("📤 Share Link", url=share_url)])
+
     keyboard = keyboard_rows or [[InlineKeyboardButton("Help: Set bot username in BotFather", url="https://t.me/BotFather")]]
 
     # Send either as a reply to a message or to a callback query's message
