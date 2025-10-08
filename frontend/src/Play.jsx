@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import './play.css'
+import { getCard, CARD_COUNT } from './bingoCards'
 
 function useQuery() {
   return useMemo(() => new URLSearchParams(window.location.search), [])
@@ -14,7 +15,8 @@ function initTelegram() {
     tg.enableClosingConfirmation()
     tg.MainButton.setParams({
       text: 'Refresh',
-      is_visible: true,
+      is_visible: false,
+
     })
   } catch {}
   return tg
@@ -51,33 +53,7 @@ export default function Play() {
     })
   }
 
-  // Build a deterministic 5x5 bingo-like card from a seed (the clicked number)
-  const buildCard = (seed) => {
-    if (!seed) return []
-    // Classic B I N G O column ranges
-    const ranges = [
-      [1, 15],   // B
-      [16, 30],  // I
-      [31, 45],  // N
-      [46, 60],  // G
-      [61, 75],  // O
-    ]
-    const columns = ranges.map(([start, end], idx) => {
-      const size = end - start + 1
-      const arr = Array.from({ length: size }, (_, i) => start + i)
-      const offset = (seed + idx * 7) % size
-      const rotated = [...arr.slice(offset), ...arr.slice(0, offset)]
-      return rotated.slice(0, 5)
-    })
-    // Compose rows from columns; set center free
-    const rows = Array.from({ length: 5 }, (_, r) =>
-      Array.from({ length: 5 }, (_, c) => {
-        if (r === 2 && c === 2) return '★'
-        return columns[c][r]
-      })
-    )
-    return rows
-  }
+  // Static cards are provided by bingoCards.js (getCard, CARD_COUNT)
 
   return (
     <div className="play-wrapper">
@@ -91,7 +67,7 @@ export default function Play() {
 
       <div className="grid-scroll">
         <div className="grid">
-          {Array.from({ length: 200 }, (_, i) => i + 1).map(n => (
+          {Array.from({ length: CARD_COUNT }, (_, i) => i + 1).map(n => (
             <button
               key={n}
               onClick={() => setPreview(n)}
@@ -108,25 +84,66 @@ export default function Play() {
       </div>
 
       {preview && (
-        <div className="modal-overlay" onClick={() => setPreview(null)}>
-          <div className="modal card-preview" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Card #{preview}</h3>
-              <button className="modal-close" onClick={() => setPreview(null)}>×</button>
-            </div>
-            <div className="modal-body">
-              <div className="bingo-head">
-                <span className="b">B</span>
-                <span className="i">I</span>
-                <span className="n">N</span>
-                <span className="g">G</span>
-                <span className="o">O</span>
+        <div
+          className="modal-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999,
+          }}
+          onClick={() => setPreview(null)}
+        >
+          <div
+            className="modal card-preview"
+            style={{
+              width: 'min(440px,92vw)',
+              background: 'linear-gradient(#ffd27a,#ffb54e)',
+              borderRadius: 12,
+              boxShadow: '0 10px 30px rgba(0,0,0,.25)',
+              overflow: 'hidden',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header" style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 14px', borderBottom: '1px solid #eee', background: 'transparent'
+            }}>
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                <div style={{
+                  background:'#ffcc4d', color:'#6b3e00', fontWeight:900,
+                  borderRadius:999, padding:'4px 10px', boxShadow:'inset 0 2px 0 rgba(255,255,255,.6)',
+                  border:'2px solid #f39c12'
+                }}></div>
+                <h3 style={{margin:0,color:'#2b2b2b'}}>Card #{preview}</h3>
               </div>
-              <div className="card-grid">
-                {buildCard(preview).map((row, ri) => (
-                  <div className="row" key={ri}>
+              <button className="modal-close" style={{background:'transparent', border:'none', fontSize:22, lineHeight:1, cursor:'pointer'}} onClick={() => setPreview(null)}>×</button>
+            </div>
+            <div className="modal-body" style={{padding:14}}>
+              <div className="bingo-head" style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:6, marginBottom:8}}>
+                <span className="b" style={{display:'block', textAlign:'center', color:'#fff', fontWeight:900, borderRadius:8, padding:'6px 0', background:'#2ecc71'}}>B</span>
+                <span className="i" style={{display:'block', textAlign:'center', color:'#fff', fontWeight:900, borderRadius:8, padding:'6px 0', background:'#e74c3c'}}>I</span>
+                <span className="n" style={{display:'block', textAlign:'center', color:'#fff', fontWeight:900, borderRadius:8, padding:'6px 0', background:'#f1c40f'}}>N</span>
+                <span className="g" style={{display:'block', textAlign:'center', color:'#fff', fontWeight:900, borderRadius:8, padding:'6px 0', background:'#3498db'}}>G</span>
+                <span className="o" style={{display:'block', textAlign:'center', color:'#fff', fontWeight:900, borderRadius:8, padding:'6px 0', background:'#9b59b6'}}>O</span>
+              </div>
+              <div className="card-grid" style={{
+                display:'flex', flexDirection:'column', gap:6, background:'#ffa63a', borderRadius:12, padding:8, border:'3px solid #e08924'
+              }}>
+                {getCard(preview).map((row, ri) => (
+                  <div className="row" key={ri} style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:6}}>
                     {row.map((val, ci) => (
-                      <div className={val === '★' ? 'cg-cell free' : 'cg-cell'} key={ci}>
+                      <div
+                        className={val === '★' ? 'cg-cell free' : 'cg-cell'}
+                        key={ci}
+                        style={{
+                          background: val === '★' ? '#1f7a4f' : '#222',
+                          borderRadius: 10, color: '#fff', textAlign:'center', padding:'10px 0', fontWeight:800
+                        }}
+                      >
                         {val}
                       </div>
                     ))}
@@ -134,8 +151,9 @@ export default function Play() {
                 ))}
               </div>
 
-              <div className="preview-actions">
-                <button className="accept" onClick={() => {
+              <div className="preview-actions" style={{display:'flex', gap:10, justifyContent:'center', marginTop:12}}>
+                <button className="accept" style={{background:'#19c37d', border:'none', color:'#fff', padding:'10px 14px', borderRadius:10, fontWeight:800}}
+                  onClick={() => {
                   try {
                     const tg = window?.Telegram?.WebApp
                     tg?.sendData?.(JSON.stringify({ type: 'choose_card', card: preview, stake }))
@@ -143,7 +161,7 @@ export default function Play() {
                   toggle(preview)
                   setPreview(null)
                 }}>Accept</button>
-                <button className="cancel" onClick={() => setPreview(null)}>Cancel</button>
+                <button className="cancel" style={{background:'#d0d3d4', border:'none', color:'#222', padding:'10px 14px', borderRadius:10, fontWeight:800}} onClick={() => setPreview(null)}>Cancel</button>
               </div>
             </div>
           </div>

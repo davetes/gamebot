@@ -10,7 +10,7 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '127.0.0.1',
-      'server-sunglasses-flux-moved.trycloudflare.com',
+      'keen-permalink-reliability-machinery.trycloudflare.com',
       /^.+\.trycloudflare\.com$/,
     ],
     host: true,
