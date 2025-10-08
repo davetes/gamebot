@@ -16,9 +16,21 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from api.views import leaderboard_view
+from api.views import (
+    leaderboard_view,
+    list_pending_deposits,
+    approve_deposit,
+    list_admin_txns,
+    add_admin_txn,
+    bulk_add_admin_txns,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/leaderboard', leaderboard_view, name='api_leaderboard'),
+    path('api/admin/deposits', list_pending_deposits, name='api_admin_deposits'),
+    path('api/admin/deposits/<int:deposit_id>/approve', approve_deposit, name='api_admin_approve_deposit'),
+    path('api/admin/txns', list_admin_txns, name='api_admin_txns'),
+    path('api/admin/txns/add', add_admin_txn, name='api_admin_txns_add'),
+    path('api/admin/txns/bulk', bulk_add_admin_txns, name='api_admin_txns_bulk'),
 ]

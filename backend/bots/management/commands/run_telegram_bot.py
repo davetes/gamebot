@@ -1,4 +1,5 @@
 import sqlite3
+import json
 import asyncio
 from datetime import datetime
 from pathlib import Path
@@ -32,7 +33,14 @@ from bots.profile import (
 )
 from bots.invite import send_invite
 from bots.playnow import build_stake_selection, parse_bet_amount
-from bots.deposit import start_deposit, handle_text as handle_deposit_text, handle_deposit_method
+from bots.deposit import (
+    start_deposit,
+    handle_text as handle_deposit_text,
+    handle_deposit_method,
+    ensure_deposits_table,
+    ensure_admin_txns_table,
+    verify_deposit_reference,
+)
 
 # -----------------------
 # Database Setup
@@ -395,15 +403,17 @@ class Command(BaseCommand):
         ensure_user_finance_columns()
         ensure_username_column()
         ensure_referral_column()
+        ensure_deposits_table()
+        ensure_admin_txns_table()
 
         # Read token from environment (.env is loaded by Django settings)
         token = os.environ.get("TELEGRAM_BOT_TOKEN")
         if not token:
             raise CommandError("TELEGRAM_BOT_TOKEN is not set. Add it to your .env at the repository root.")
 
-        # Optional network configuration from .env
-        connect_timeout = float(os.environ.get("TELEGRAM_HTTP_CONNECT_TIMEOUT", 10))
-        read_timeout = float(os.environ.get("TELEGRAM_HTTP_READ_TIMEOUT", 30))
+        # Optional network configuration from .env (use higher defaults for slow networks)
+        connect_timeout = float(os.environ.get("TELEGRAM_HTTP_CONNECT_TIMEOUT", 30))
+        read_timeout = float(os.environ.get("TELEGRAM_HTTP_READ_TIMEOUT", 90))
 
         # Note: python-telegram-bot==20.3 HTTPXRequest does not accept a 'proxy' kwarg.
         # If you need a proxy, set environment variables HTTPS_PROXY/HTTP_PROXY instead.
@@ -429,9 +439,54 @@ class Command(BaseCommand):
         app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
         # Register Cancel handler BEFORE the generic text handler (case-insensitive)
         app.add_handler(MessageHandler(filters.TEXT & filters.Regex("(?i)^cancel$"), handle_register_cancel))
-        # Username change handler must be before deposit handler to avoid conflicts
-        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_username_text))
+        # Handle WebApp data events from the Mini App (Verify button)
+        async def handle_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+            msg = update.effective_message or update.message
+            if not msg:
+                print("[WEBAPP] No message found on update")
+                return
+            wad = getattr(msg, "web_app_data", None)
+            if not wad:
+                # Not a WebApp data message; ignore silently
+                return
+            print(f"[WEBAPP] Received web_app_data: {wad.data!r}")
+            try:
+                data = json.loads(wad.data or "{}")
+            except Exception as e:
+                print(f"[WEBAPP] JSON parse error: {e}")
+                try:
+                    await msg.reply_text("Invalid data from Mini App.")
+                except Exception as e2:
+                    print(f"[WEBAPP] Reply failed: {e2}")
+                return
+
+            if data.get("type") == "verify_deposit":
+                method = data.get("method")
+                amount = None
+                if str(data.get("amount") or "").strip():
+                    try:
+                        amount = float(str(data.get("amount")).replace(",", "").strip())
+                    except Exception:
+                        amount = None
+                reference = data.get("ref") or data.get("reference") or ""
+                ok, message = verify_deposit_reference(update.effective_user.id, method, amount, reference)
+                try:
+                    await msg.reply_text(message)
+                except Exception as e2:
+                    print(f"[WEBAPP] Reply send failed: {e2}")
+            else:
+                print(f"[WEBAPP] Unhandled type: {data.get('type')} ")
+                return
+
+        # Register handler for WebApp data (PTB v20):
+        try:
+            app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp_data))
+        except Exception:
+            # Fallback: register with a generic message filter and self-guard in the handler
+            app.add_handler(MessageHandler(filters.ALL, handle_webapp_data))
+        # Deposit handlers first (amount then reference), before generic username handler
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_deposit_text))
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_username_text))
 
         async def on_startup(app_instance):
             try:
@@ -448,7 +503,7 @@ class Command(BaseCommand):
         try:
             app.run_polling(
                 poll_interval=1.0,
-                timeout=10,
+                timeout=30,
                 drop_pending_updates=True,
                 allowed_updates=Update.ALL_TYPES,
             )

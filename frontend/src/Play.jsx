@@ -26,6 +26,7 @@ export default function Play() {
   const [active, setActive] = useState(new Set())
   const [gameId] = useState(() => Math.floor(100000 + Math.random() * 900000))
   const [activeGame] = useState(1)
+  const [preview, setPreview] = useState(null) // number or null
 
   useEffect(() => {
     const tg = initTelegram()
@@ -50,6 +51,34 @@ export default function Play() {
     })
   }
 
+  // Build a deterministic 5x5 bingo-like card from a seed (the clicked number)
+  const buildCard = (seed) => {
+    if (!seed) return []
+    // Classic B I N G O column ranges
+    const ranges = [
+      [1, 15],   // B
+      [16, 30],  // I
+      [31, 45],  // N
+      [46, 60],  // G
+      [61, 75],  // O
+    ]
+    const columns = ranges.map(([start, end], idx) => {
+      const size = end - start + 1
+      const arr = Array.from({ length: size }, (_, i) => start + i)
+      const offset = (seed + idx * 7) % size
+      const rotated = [...arr.slice(offset), ...arr.slice(0, offset)]
+      return rotated.slice(0, 5)
+    })
+    // Compose rows from columns; set center free
+    const rows = Array.from({ length: 5 }, (_, r) =>
+      Array.from({ length: 5 }, (_, c) => {
+        if (r === 2 && c === 2) return '★'
+        return columns[c][r]
+      })
+    )
+    return rows
+  }
+
   return (
     <div className="play-wrapper">
       <div className="stats">
@@ -65,7 +94,7 @@ export default function Play() {
           {Array.from({ length: 200 }, (_, i) => i + 1).map(n => (
             <button
               key={n}
-              onClick={() => toggle(n)}
+              onClick={() => setPreview(n)}
               className={active.has(n) ? 'cell active' : 'cell'}
             >
               {n}
@@ -77,6 +106,49 @@ export default function Play() {
       <div className="actions">
         <button className="refresh" onClick={() => window.location.reload()}>Refresh</button>
       </div>
+
+      {preview && (
+        <div className="modal-overlay" onClick={() => setPreview(null)}>
+          <div className="modal card-preview" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Card #{preview}</h3>
+              <button className="modal-close" onClick={() => setPreview(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="bingo-head">
+                <span className="b">B</span>
+                <span className="i">I</span>
+                <span className="n">N</span>
+                <span className="g">G</span>
+                <span className="o">O</span>
+              </div>
+              <div className="card-grid">
+                {buildCard(preview).map((row, ri) => (
+                  <div className="row" key={ri}>
+                    {row.map((val, ci) => (
+                      <div className={val === '★' ? 'cg-cell free' : 'cg-cell'} key={ci}>
+                        {val}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              <div className="preview-actions">
+                <button className="accept" onClick={() => {
+                  try {
+                    const tg = window?.Telegram?.WebApp
+                    tg?.sendData?.(JSON.stringify({ type: 'choose_card', card: preview, stake }))
+                  } catch {}
+                  toggle(preview)
+                  setPreview(null)
+                }}>Accept</button>
+                <button className="cancel" onClick={() => setPreview(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

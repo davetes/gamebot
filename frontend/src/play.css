@@ -15,3 +15,30 @@
 /* footer actions (fixed) */
 .actions{display:flex;justify-content:center;margin:12px 0 0 0;padding-top:8px;background:transparent;position:relative;z-index:2}
 .refresh{background:#2d7ef7;color:#fff;border:none;border-radius:20px;padding:10px 18px;font-weight:700}
+
+/* Modal (reused pattern from deposit) */
+.modal-overlay{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal{width:min(440px,92vw);background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #eee}
+.modal-header h3{margin:0;color:#2b2b2b}
+.modal-close{background:transparent;border:none;font-size:22px;line-height:1;cursor:pointer}
+.modal-body{padding:14px}
+
+/* Card preview visual */
+.card-preview{background:linear-gradient(#ffd27a,#ffb54e)}
+.bingo-head{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px}
+.bingo-head span{display:block;text-align:center;color:#fff;font-weight:900;border-radius:8px;padding:6px 0}
+.bingo-head .b{background:#2ecc71}
+.bingo-head .i{background:#2e86de}
+.bingo-head .n{background:#f1c40f}
+.bingo-head .g{background:#8e44ad}
+.bingo-head .o{background:#e84393}
+
+.card-grid{display:flex;flex-direction:column;gap:6px;background:#ffa63a;border-radius:12px;padding:8px}
+.row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.cg-cell{background:#222;border-radius:10px;color:#fff;text-align:center;padding:10px 0;font-weight:800}
+.cg-cell.free{background:#1f7a4f}
+
+.preview-actions{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.preview-actions .accept{background:#19c37d;border:none;color:#fff;padding:10px 14px;border-radius:10px;font-weight:800}
+.preview-actions .cancel{background:#d0d3d4;border:none;color:#222;padding:10px 14px;border-radius:10px;font-weight:800}
