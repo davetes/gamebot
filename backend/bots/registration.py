@@ -11,7 +11,7 @@ from telegram import (
     InlineKeyboardMarkup,
 )
 from telegram.ext import ContextTypes
-from bots.finance import add_coins
+from bots.finance import add_etb
 
 # Use the same DB location as the bot command
 DB_FILE = str(Path(settings.BASE_DIR).parent / "usage.db")
@@ -100,9 +100,15 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     phone = update.message.contact.phone_number
 
+    # Determine if this is the first time this user is registering (no phone stored before)
+    first_time = False
     conn = sqlite3.connect(DB_FILE)
     try:
         cur = conn.cursor()
+        cur.execute("SELECT phone FROM users WHERE user_id = ?", (user.id,))
+        row = cur.fetchone()
+        had_phone = bool(row and row[0] and str(row[0]).strip())
+
         cur.execute(
             """
             INSERT INTO users (user_id, phone, created_at)
@@ -112,6 +118,7 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
             (user.id, phone, datetime.utcnow().isoformat()),
         )
         conn.commit()
+        first_time = not had_phone
     finally:
         conn.close()
 
@@ -123,19 +130,27 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Clear any lingering register flow state if present
     context.user_data.pop("awaiting_registration", None)
 
-    # Referral bonus: if this user was referred, add coins to inviter
-    try:
-        conn = sqlite3.connect(DB_FILE)
-        cur = conn.cursor()
-        cur.execute("SELECT referred_by FROM users WHERE user_id = ?", (user.id,))
-        row = cur.fetchone()
-        inviter_id = row[0] if row else None
-        conn.close()
-        if inviter_id:
-            add_coins(inviter_id, 10.0)
-    except Exception as e:
-        # Soft-fail: do not block registration completion
-        print(f"Referral bonus failed: {e}")
+    # Bonuses (only on first-time registration)
+    if first_time:
+        try:
+            # Give the registering user 10 ETB
+            add_etb(user.id, 10.0)
+        except Exception as e:
+            print(f"Registration bonus failed: {e}")
+
+        # Referral bonus: if this user was referred, give the inviter 10 ETB
+        try:
+            conn = sqlite3.connect(DB_FILE)
+            cur = conn.cursor()
+            cur.execute("SELECT referred_by FROM users WHERE user_id = ?", (user.id,))
+            row = cur.fetchone()
+            inviter_id = row[0] if row else None
+            conn.close()
+            if inviter_id:
+                add_etb(int(inviter_id), 10.0)
+        except Exception as e:
+            # Soft-fail: do not block registration completion
+            print(f"Referral bonus failed: {e}")
 
     # After successful registration, present the main menu WITHOUT the Register button
     keyboard = [

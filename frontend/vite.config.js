@@ -10,7 +10,7 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '127.0.0.1',
-      'keen-permalink-reliability-machinery.trycloudflare.com',
+      'uncertainty-violation-occupational-bowl.trycloudflare.com',
       /^.+\.trycloudflare\.com$/,
     ],
     host: true,

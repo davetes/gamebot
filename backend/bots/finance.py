@@ -66,3 +66,32 @@ def add_coins(user_id: int, delta: float) -> None:
         conn.commit()
     finally:
         conn.close()
+
+
+def add_etb(user_id: int, delta: float) -> None:
+    """Increment a user's ETB balance by delta. Creates the row if missing.
+
+    Uses the `balance_etb` column managed by ensure_user_finance_columns().
+    """
+    # Make sure required columns exist (safe to call repeatedly)
+    ensure_user_finance_columns()
+
+    conn = sqlite3.connect(DB_FILE)
+    try:
+        cur = conn.cursor()
+        # Ensure user row exists
+        cur.execute("SELECT balance_etb FROM users WHERE user_id = ?", (user_id,))
+        row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                "INSERT INTO users(user_id, phone, created_at, balance_etb, coin) VALUES(?, NULL, datetime('now'), 0.0, 0.0)",
+                (user_id,),
+            )
+        # Apply increment
+        cur.execute(
+            "UPDATE users SET balance_etb = COALESCE(balance_etb, 0) + ? WHERE user_id = ?",
+            (float(delta), user_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
