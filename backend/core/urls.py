@@ -23,6 +23,7 @@ from api.views import (
     list_admin_txns,
     add_admin_txn,
     bulk_add_admin_txns,
+    upload_receipt,
 )
 
 urlpatterns = [
@@ -33,4 +34,5 @@ urlpatterns = [
     path('api/admin/txns', list_admin_txns, name='api_admin_txns'),
     path('api/admin/txns/add', add_admin_txn, name='api_admin_txns_add'),
     path('api/admin/txns/bulk', bulk_add_admin_txns, name='api_admin_txns_bulk'),
+    path('api/upload-receipt', upload_receipt, name='api_upload_receipt'),
 ]

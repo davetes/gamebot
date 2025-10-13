@@ -340,6 +340,16 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg, parse_mode='HTML', disable_web_page_preview=True)
 
 
+async def deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Start the same guided deposit flow as the Make a Deposit button."""
+    user = update.effective_user
+    await log_user_usage(user.id, user.username or "")
+    if not is_registered(user.id):
+        await send_registration_prompt(update, context, with_keyboard=True)
+        return
+    await start_deposit(update, context)
+
+
 async def contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     await log_user_usage(user.id, user.username or "")
@@ -432,6 +442,7 @@ class Command(BaseCommand):
         app.add_handler(CommandHandler("start", start))
         app.add_handler(CommandHandler("play", play))
         app.add_handler(CommandHandler("balance", balance))
+        app.add_handler(CommandHandler("deposit", deposit))
         app.add_handler(CommandHandler("register", handle_register_command))
         app.add_handler(CommandHandler("invite", send_invite))
         app.add_handler(CommandHandler("contact", contact))
@@ -474,6 +485,58 @@ class Command(BaseCommand):
                     await msg.reply_text(message)
                 except Exception as e2:
                     print(f"[WEBAPP] Reply send failed: {e2}")
+            elif data.get("type") == "notify_support":
+                # Forward a deposit notification to support and request a screenshot upload next
+                method = str(data.get("method") or "-")
+                amount_raw = str(data.get("amount") or "-")
+                amount_str = amount_raw
+                user = update.effective_user
+
+                # Lookup user's stored phone from registration DB
+                phone = None
+                try:
+                    conn = sqlite3.connect(DB_FILE)
+                    cur = conn.cursor()
+                    cur.execute("SELECT phone FROM users WHERE user_id = ?", (user.id,))
+                    row = cur.fetchone()
+                    phone = row[0] if row else None
+                except Exception as e:
+                    print(f"[WEBAPP] phone lookup failed: {e}")
+                finally:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+
+                support_target = os.environ.get("SUPPORT_TARGET", "@Afamedawa")
+
+                info_block = (
+                    "Deposit notification\n"
+                    f"Method: {method}\n"
+                    f"Amount: {amount_str} ETB\n"
+                    f"From: {user.full_name} (@{user.username or '-'}, id:{user.id})\n"
+                    f"Phone: {phone or '-'}\n"
+                    "Receipt: user will send a screenshot next."
+                )
+
+                # Try notifying support chat/channel immediately
+                try:
+                    await context.bot.send_message(chat_id=support_target, text=info_block)
+                except Exception as e:
+                    print(f"[WEBAPP] notify support failed: {e}")
+
+                # Mark that we are awaiting a receipt photo from this user
+                context.user_data["awaiting_receipt"] = {
+                    "method": method,
+                    "amount": amount_str,
+                    "phone": phone,
+                    "support_target": support_target,
+                }
+
+                try:
+                    await msg.reply_text("Your message was sent successfully. Please send your receipt screenshot now.")
+                except Exception as e2:
+                    print(f"[WEBAPP] Reply send failed: {e2}")
             else:
                 print(f"[WEBAPP] Unhandled type: {data.get('type')} ")
                 return
@@ -484,6 +547,45 @@ class Command(BaseCommand):
         except Exception:
             # Fallback: register with a generic message filter and self-guard in the handler
             app.add_handler(MessageHandler(filters.ALL, handle_webapp_data))
+        
+        # When the user sends a photo after notify_support, forward it to support with context
+        async def handle_user_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+            user = update.effective_user
+            data = context.user_data.get("awaiting_receipt")
+            if not data:
+                # Not expecting a receipt; ignore graceful
+                return
+            support_target = data.get("support_target") or os.environ.get("SUPPORT_TARGET", "@Afamedawa")
+            method = data.get("method") or "-"
+            amount_str = data.get("amount") or "-"
+            phone = data.get("phone") or "-"
+
+            caption = (
+                "Deposit receipt\n"
+                f"Method: {method}\n"
+                f"Amount: {amount_str} ETB\n"
+                f"From: {user.full_name} (@{user.username or '-'}, id:{user.id})\n"
+                f"Phone: {phone}"
+            )
+
+            try:
+                await context.bot.copy_message(
+                    chat_id=support_target,
+                    from_chat_id=update.effective_chat.id,
+                    message_id=update.message.message_id,
+                    caption=caption,
+                )
+                await update.message.reply_text("Thanks! Your screenshot has been forwarded to support. We will review and credit you shortly.")
+                # Clear awaiting flag
+                context.user_data.pop("awaiting_receipt", None)
+            except Exception as e:
+                print(f"[PHOTO] forward failed: {e}")
+                try:
+                    await update.message.reply_text("Failed to forward screenshot to support. Please try again later.")
+                except Exception:
+                    pass
+
+        app.add_handler(MessageHandler(filters.PHOTO, handle_user_photo))
         # Deposit handlers first (amount then reference), before generic username handler
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_deposit_text))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_username_text))

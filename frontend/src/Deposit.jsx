@@ -19,7 +19,18 @@ export default function Deposit() {
   const [cbeBirrPhoneErr, setCbeBirrPhoneErr] = useState('')
   const [cbeBirrTxnErr, setCbeBirrTxnErr] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [submitMsg, setSubmitMsg] = useState('')
+  const [telebirrReceipt, setTelebirrReceipt] = useState(null)
+  const [cbeReceipt, setCbeReceipt] = useState(null)
+  const [boaReceipt, setBoaReceipt] = useState(null)
+  const [cbeBirrReceipt, setCbeBirrReceipt] = useState(null)
+  const [telebirrReceiptErr, setTelebirrReceiptErr] = useState('')
+  const [cbeReceiptErr, setCbeReceiptErr] = useState('')
+  const [boaReceiptErr, setBoaReceiptErr] = useState('')
+  const [cbeBirrReceiptErr, setCbeBirrReceiptErr] = useState('')
+  const [telebirrSubmitMsg, setTelebirrSubmitMsg] = useState('')
+  const [cbeBirrSubmitMsg, setCbeBirrSubmitMsg] = useState('')
+  const [boaSubmitMsg, setBoaSubmitMsg] = useState('')
+  const [cbeSubmitMsg, setCbeSubmitMsg] = useState('')
 
   useEffect(() => {
     const tg = window?.Telegram?.WebApp
@@ -28,6 +39,8 @@ export default function Deposit() {
       tg?.expand()
     } catch {}
   }, [])
+
+  
 
   const banks = [
     { key: 'telebirr', name: 'Telebirr', img: '/telebirr.jpg' },
@@ -63,7 +76,7 @@ export default function Deposit() {
       </div>
 
       <footer className="deposit-footer">
-        <span>Copyright © Allora-Groups 2025</span>
+        <span>Copyright © luckybet 2025</span>
       </footer>
 
       {telebirrOpen && (
@@ -84,42 +97,46 @@ export default function Deposit() {
 
               <ol className="steps">
                 <li> ከላይ ባለው የቴሌብር አካውንት ብር ያስገቡ</li>
-                <li> የደረሳችሁን አጭር የጹሁፍ መለክት (SMS) ሙሉዉን ኮፒ (copy) በማረግ ከታሽ ባለው የጹሁፍ ማስገቢያው ላይ ፔስት (paste) በማረግ ይላኩት</li>
+                <li>  የደረሳችሁን አጭር የጹሁፍ መለክት ስክሪንሻት(Screenshot) በማረግ ከታሽ ባለው የupload ማስገቢያው ላይ upload በማረግ ይላኩት</li>
               </ol>
 
               <p style={{margin:'8px 0 12px 0', color:'#333'}}>
-              የሚያጋጥማቹ የክፍያ ችግር ካለ ኤጀንቱን ማዋራት ይችላሉ ወይም <a href="https://t.me/cartelabingo_support" target="_blank" rel="noreferrer">@cartelabingo_support</a> በዚ ሰፖርት ማዉራት ይችላሉ።
+              የሚያጋጥማቹ የክፍያ ችግር ካለ ኤጀንቱን ማዋራት ይችላሉ ወይም <a href="https://t.me/Afamedawa" target="_blank" rel="noreferrer">@luckybet_support</a> በዚ ሰፖርት ማዉራት ይችላሉ።
               </p>
 
-              <div className="verify-title">Verify Transaction</div>
+              <div className="verify-title">Upload Receipt Screenshot</div>
               <div className="verify-row">
-                <input
-                  value={telebirrTxn}
-                  onChange={e => {
-                    setTelebirrTxn(e.target.value)
-                    if (e.target.value.trim().length >= 8) setTelebirrTxnErr('')
-                  }}
-                  placeholder="Enter Telebirr transaction num"
-                  className={telebirrTxnErr ? 'input-error' : ''}
-                />
-                <button className="verify-btn" disabled={submitting} onClick={() => {
+                <input type="file" accept="image/*" className={telebirrReceiptErr ? 'input-error' : ''} onChange={e => { setTelebirrReceipt(e.target.files?.[0] || null); setTelebirrReceiptErr('') }} />
+                <button className="verify-btn" disabled={submitting} onClick={async () => {
                   const tg = window?.Telegram?.WebApp
-                  const ok = /^[A-Za-z0-9]{8,}$/.test(telebirrTxn.trim())
-                  if (!ok) { setTelebirrTxnErr('Invalid transaction'); return }
+                  if (!telebirrReceipt) { setTelebirrReceiptErr('እባክዎን የደረሰኙን ስክሪንሻት (screenshot) አስቀድመው ይስቀሉ'); return }
+                  const user = tg?.initDataUnsafe?.user
+                  const fd = new FormData()
+                  fd.append('method', 'telebirr')
+                  fd.append('amount', String(amount))
+                  if (user?.id) fd.append('user_id', String(user.id))
+                  if (user?.username) fd.append('username', user.username)
+                  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ')
+                  if (fullName) fd.append('full_name', fullName)
+                  fd.append('photo', telebirrReceipt)
                   setSubmitting(true)
                   try {
-                    tg?.sendData(JSON.stringify({ type: 'verify_deposit', method: 'telebirr', amount, ref: telebirrTxn.trim() }))
-                    setSubmitMsg('Submitted. Please check the chat with the bot for confirmation.')
-                    // Optionally auto-close after a short delay
-                    setTimeout(() => { try { tg?.close?.() } catch {} }, 1200)
+                    const res = await fetch('/api/upload-receipt', { method: 'POST', body: fd })
+                    const data = await res.json().catch(() => ({}))
+                    if (!res.ok || data?.error) {
+                      setTelebirrSubmitMsg('Failed to send. Please try again.')
+                    } else {
+                      setTelebirrSubmitMsg('መልዕክትዎ በተሳካ  ሁኔታ ተልኳል')
+                    }
+                  } catch (e) {
+                    setTelebirrSubmitMsg('Network error. Please try again.')
                   } finally {
                     setSubmitting(false)
                   }
-                }}> {submitting ? 'Sending…' : 'Verify'} </button>
+                }}>{submitting ? 'Sending…' : 'send screenshot'}</button>
               </div>
-              {telebirrTxnErr && <div className="error-text">{telebirrTxnErr}</div>}
-              {submitMsg && <div className="hint" style={{color:'#1a7f37'}}>{submitMsg}</div>}
-              <div className="hint">E.g Format: CA999DASAD</div>
+              {telebirrReceiptErr && <div className="error-text">{telebirrReceiptErr}</div>}
+              {telebirrSubmitMsg && <div className="hint" style={{color:'#1a7f37'}}>{telebirrSubmitMsg}</div>}
             </div>
           </div>
         </div>
@@ -143,53 +160,44 @@ export default function Deposit() {
 
               <ol className="steps">
                 <li>ከላይ ባለው ሲቢኢ ብር አካውንት ብር ያስገቡ</li>
-                <li>የደረሳችሁን አጭር የጹሁፍ መለክት (SMS) ሙሉዉን ኮፒ (copy) በማረግ ከታሽ ባለው የጹሁፍ ማስገቢያው ላይ ፔስት (paste) በማረግ ይላኩት</li>
+                <li>የደረሳችሁን አጭር የጹሁፍ መለክት ስክሪንሻት(Screenshot) በማረግ ከታሽ ባለው የupload ማስገቢያው ላይ upload በማረግ ይላኩት</li>
               </ol>
-
-              <div className="verify-title">Sender Phone Number</div>
+          <p style={{margin:'8px 0 12px 0', color:'#333'}}>
+              የሚያጋጥማቹ የክፍያ ችግር ካለ ኤጀንቱን ማዋራት ይችላሉ ወይም<a href="https://t.me/Afamedawa" target="_blank" rel="noreferrer">@luckybet_support</a>በዚ ሰፖርት ማዉራት ይችላሉ።
+              </p>
+              <div className="verify-title">Upload Receipt Screenshot</div>
               <div className="verify-row">
-                <input
-                  value={cbeBirrPhone}
-                  onChange={e => {
-                    setCbeBirrPhone(e.target.value)
-                    if (/^2519\d{8}$/.test(e.target.value.trim())) setCbeBirrPhoneErr('')
-                  }}
-                  placeholder="2519...."
-                  className={cbeBirrPhoneErr ? 'input-error' : ''}
-                />
-              </div>
-              {cbeBirrPhoneErr && <div className="error-text">{cbeBirrPhoneErr}</div>}
-
-              <div className="verify-title">Verify Transaction</div>
-              <div className="verify-row">
-                <input
-                  value={cbeBirrTxn}
-                  onChange={e => {
-                    setCbeBirrTxn(e.target.value)
-                    if (/^[A-Za-z0-9]{8,}$/.test(e.target.value.trim())) setCbeBirrTxnErr('')
-                  }}
-                  placeholder="Enter CBE Birr transaction num"
-                  className={cbeBirrTxnErr ? 'input-error' : ''}
-                />
-                <button className="verify-btn" disabled={submitting} onClick={() => {
+                <input type="file" accept="image/*" className={cbeBirrReceiptErr ? 'input-error' : ''} onChange={e => { setCbeBirrReceipt(e.target.files?.[0] || null); setCbeBirrReceiptErr('') }} />
+                <button className="verify-btn" disabled={submitting} onClick={async () => {
                   const tg = window?.Telegram?.WebApp
-                  const phoneOk = /^2519\d{8}$/.test(cbeBirrPhone.trim())
-                  if (!phoneOk) { setCbeBirrPhoneErr('Invalid Phone Number'); return }
-                  const txnOk = /^[A-Za-z0-9]{8,}$/.test(cbeBirrTxn.trim())
-                  if (!txnOk) { setCbeBirrTxnErr('Invalid transaction'); return }
+                  if (!cbeBirrReceipt) { setCbeBirrReceiptErr('እባክዎን የደረሰኙን ስክሪንሻት (screenshot) አስቀድመው ይስቀሉ'); return }
+                  const user = tg?.initDataUnsafe?.user
+                  const fd = new FormData()
+                  fd.append('method', 'cbe-birr')
+                  fd.append('amount', String(amount))
+                  if (user?.id) fd.append('user_id', String(user.id))
+                  if (user?.username) fd.append('username', user.username)
+                  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ')
+                  if (fullName) fd.append('full_name', fullName)
+                  fd.append('photo', cbeBirrReceipt)
                   setSubmitting(true)
                   try {
-                    tg?.sendData(JSON.stringify({ type: 'verify_deposit', method: 'cbe-birr', amount, phone: cbeBirrPhone.trim(), ref: cbeBirrTxn.trim() }))
-                    setSubmitMsg('Submitted. Please check the chat with the bot for confirmation.')
-                    setTimeout(() => { try { tg?.close?.() } catch {} }, 1200)
+                    const res = await fetch('/api/upload-receipt', { method: 'POST', body: fd })
+                    const data = await res.json().catch(() => ({}))
+                    if (!res.ok || data?.error) {
+                      setCbeBirrSubmitMsg('Failed to send. Please try again.')
+                    } else {
+                      setCbeBirrSubmitMsg('መልዕክትዎ በተሳካ  ሁኔታ ተልኳል')
+                    }
+                  } catch (e) {
+                    setCbeBirrSubmitMsg('Network error. Please try again.')
                   } finally {
                     setSubmitting(false)
                   }
-                }}>{submitting ? 'Sending…' : 'Verify'}</button>
+                }}>{submitting ? 'Sending…' : 'send screenshot'}</button>
               </div>
-              {(cbeBirrTxnErr && <div className="error-text">{cbeBirrTxnErr}</div>)}
-              {submitMsg && <div className="hint" style={{color:'#1a7f37'}}>{submitMsg}</div>}
-              <div className="hint">E.g Format: FT25160PLPSH88713517</div>
+              {cbeBirrReceiptErr && <div className="error-text">{cbeBirrReceiptErr}</div>}
+              {cbeBirrSubmitMsg && <div className="hint" style={{color:'#1a7f37'}}>{cbeBirrSubmitMsg}</div>}
             </div>
           </div>
         </div>
@@ -213,41 +221,46 @@ export default function Deposit() {
 
               <ol className="steps">
                 <li>ከላይ ባለው አቢስንያ ባንክ አካውንት ብር ያስገቡ</li>
-                <li>የደረሳችሁን አጭር የጹሁፍ መለክት (SMS) ሙሉዉን ኮፒ (copy) በማረግ ከታሽ ባለው የጹሁፍ ማስገቢያው ላይ ፔስት (paste) በማረግ ይላኩት</li>
+                <li>የደረሳችሁን አጭር የጹሁፍ መለክት ስክሪንሻት(Screenshot) በማረግ ከታሽ ባለው የupload ማስገቢያው ላይ upload በማረግ ይላኩት</li>
               </ol>
 
               <p style={{margin:'8px 0 12px 0', color:'#333'}}>
-              የሚያጋጥማቹ የክፍያ ችግር ካለ ኤጀንቱን ማዋራት ይችላሉ ወይም<a href="https://t.me/cartelabingo_support" target="_blank" rel="noreferrer">@cartelabingo_support</a>በዚ ሰፖርት ማዉራት ይችላሉ።
+              የሚያጋጥማቹ የክፍያ ችግር ካለ ኤጀንቱን ማዋራት ይችላሉ ወይም<a href="https://t.me/Afamedawa" target="_blank" rel="noreferrer">@luckybet_support</a>በዚ ሰፖርት ማዉራት ይችላሉ።
               </p>
 
-              <div className="verify-title">Verify Transaction</div>
+              <div className="verify-title">Upload Receipt Screenshot</div>
               <div className="verify-row">
-                <input
-                  value={boaTxn}
-                  onChange={e => {
-                    setBoaTxn(e.target.value)
-                    if (/^[A-Za-z0-9]{8,}$/.test(e.target.value.trim())) setBoaTxnErr('')
-                  }}
-                  placeholder="Enter BOA transaction number"
-                  className={boaTxnErr ? 'input-error' : ''}
-                />
-                <button className="verify-btn" disabled={submitting} onClick={() => {
+                <input type="file" accept="image/*" className={boaReceiptErr ? 'input-error' : ''} onChange={e => { setBoaReceipt(e.target.files?.[0] || null); setBoaReceiptErr('') }} />
+                <button className="verify-btn" disabled={submitting} onClick={async () => {
                   const tg = window?.Telegram?.WebApp
-                  const ok = /^[A-Za-z0-9]{8,}$/.test(boaTxn.trim())
-                  if (!ok) { setBoaTxnErr('Invalid transaction'); return }
+                  if (!boaReceipt) { setBoaReceiptErr('እባክዎን የደረሰኙን ስክሪንሻት (screenshot) አስቀድመው ይስቀሉ'); return }
+                  const user = tg?.initDataUnsafe?.user
+                  const fd = new FormData()
+                  fd.append('method', 'boa')
+                  fd.append('amount', String(amount))
+                  if (user?.id) fd.append('user_id', String(user.id))
+                  if (user?.username) fd.append('username', user.username)
+                  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ')
+                  if (fullName) fd.append('full_name', fullName)
+                  fd.append('photo', boaReceipt)
                   setSubmitting(true)
                   try {
-                    tg?.sendData(JSON.stringify({ type: 'verify_deposit', method: 'boa', amount, ref: boaTxn.trim() }))
-                    setSubmitMsg('Submitted. Please check the chat with the bot for confirmation.')
-                    setTimeout(() => { try { tg?.close?.() } catch {} }, 1200)
+                    const res = await fetch('/api/upload-receipt', { method: 'POST', body: fd })
+                    const data = await res.json().catch(() => ({}))
+                    if (!res.ok || data?.error) {
+                      setBoaSubmitMsg('Failed to send. Please try again.')
+                    } else {
+                      setBoaSubmitMsg('መልዕክትዎ በተሳካ  ሁኔታ ተልኳል')
+                    }
+                  } catch (e) {
+                    setBoaSubmitMsg('Network error. Please try again.')
                   } finally {
                     setSubmitting(false)
                   }
-                }}>{submitting ? 'Sending…' : 'Verify'}</button>
+                }}>{submitting ? 'Sending…' : 'send screenshot'}</button>
               </div>
-              {boaTxnErr && <div className="error-text">{boaTxnErr}</div>}
-              {submitMsg && <div className="hint" style={{color:'#1a7f37'}}>{submitMsg}</div>}
-              <div className="hint">E.g Format: FT25165P0KSV62395</div>
+              {boaReceiptErr && <div className="error-text">{boaReceiptErr}</div>}
+              {boaSubmitMsg && <div className="hint" style={{color:'#1a7f37'}}>{boaSubmitMsg}</div>}
             </div>
           </div>
         </div>
@@ -271,41 +284,46 @@ export default function Deposit() {
 
               <ol className="steps">
                 <li>ከላይ ባለው የኢትዮጵያ ንግድ ባንክ አካውንት ብር ያስገቡ</li>
-                <li> የደረሳችሁን አጭር የጹሁፍ መለክት (SMS) ሙሉዉን ኮፒ (copy) በማረግ ከታሽ ባለው የጹሁፍ ማስገቢያው ላይ ፔስት (paste) በማረግ ይላኩት</li>
+                <li> የደረሳችሁን አጭር የጹሁፍ መለክት(sms) ስክሪንሻት(Screenshot) በማረግ ከታሽ ባለው የupload ማስገቢያው ላይ upload በማረግ ይላኩት</li>
               </ol>
 
               <p style={{margin:'8px 0 12px 0', color:'#333'}}>
-              የሚያጋጥማቹ የክፍያ ችግር ካለ ኤጀንቱን ማዋራት ይችላሉ ወይም <a href="https://t.me/cartelabingo_support" target="_blank" rel="noreferrer">@cartelabingo_support</a> በዚ ሰፖርት ማዉራት ይችላሉ።
+              የሚያጋጥማቹ የክፍያ ችግር ካለ ኤጀንቱን ማዋራት ይችላሉ ወይም <a href="https://t.me/Afamedawa" target="_blank" rel="noreferrer">@luckybet_support</a> በዚ ሰፖርት ማዉራት ይችላሉ።
               </p>
 
-              <div className="verify-title">Verify Transaction</div>
+              <div className="verify-title">Upload Receipt Screenshot</div>
               <div className="verify-row">
-                <input
-                  value={cbeTxn}
-                  onChange={e => {
-                    setCbeTxn(e.target.value)
-                    if (/^[A-Za-z0-9]{8,}$/.test(e.target.value.trim())) setCbeTxnErr('')
-                  }}
-                  placeholder="Enter CBE Bank transaction num"
-                  className={cbeTxnErr ? 'input-error' : ''}
-                />
-                <button className="verify-btn" disabled={submitting} onClick={() => {
+                <input type="file" accept="image/*" className={cbeReceiptErr ? 'input-error' : ''} onChange={e => { setCbeReceipt(e.target.files?.[0] || null); setCbeReceiptErr('') }} />
+                <button className="verify-btn" disabled={submitting} onClick={async () => {
                   const tg = window?.Telegram?.WebApp
-                  const ok = /^[A-Za-z0-9]{8,}$/.test(cbeTxn.trim())
-                  if (!ok) { setCbeTxnErr('Invalid transaction'); return }
+                  if (!cbeReceipt) { setCbeReceiptErr('እባክዎን የደረሰኙን ስክሪንሻት (screenshot) አስቀድመው ይስቀሉ'); return }
+                  const user = tg?.initDataUnsafe?.user
+                  const fd = new FormData()
+                  fd.append('method', 'cbe')
+                  fd.append('amount', String(amount))
+                  if (user?.id) fd.append('user_id', String(user.id))
+                  if (user?.username) fd.append('username', user.username)
+                  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ')
+                  if (fullName) fd.append('full_name', fullName)
+                  fd.append('photo', cbeReceipt)
                   setSubmitting(true)
                   try {
-                    tg?.sendData(JSON.stringify({ type: 'verify_deposit', method: 'cbe', amount, ref: cbeTxn.trim() }))
-                    setSubmitMsg('Submitted. Please check the chat with the bot for confirmation.')
-                    setTimeout(() => { try { tg?.close?.() } catch {} }, 1200)
+                    const res = await fetch('/api/upload-receipt', { method: 'POST', body: fd })
+                    const data = await res.json().catch(() => ({}))
+                    if (!res.ok || data?.error) {
+                      setCbeSubmitMsg('Failed to send. Please try again.')
+                    } else {
+                      setCbeSubmitMsg('መልዕክትዎ በተሳካ  ሁኔታ ተልኳል')
+                    }
+                  } catch (e) {
+                    setCbeSubmitMsg('Network error. Please try again.')
                   } finally {
                     setSubmitting(false)
                   }
-                }}>{submitting ? 'Sending…' : 'Verify'}</button>
+                }}>{submitting ? 'Sending…' : 'send screenshot'}</button>
               </div>
-              {cbeTxnErr && <div className="error-text">{cbeTxnErr}</div>}
-              {submitMsg && <div className="hint" style={{color:'#1a7f37'}}>{submitMsg}</div>}
-              <div className="hint">E.g Format: FT25160PLPSH88713517</div>
+              {cbeReceiptErr && <div className="error-text">{cbeReceiptErr}</div>}
+              {cbeSubmitMsg && <div className="hint" style={{color:'#1a7f37'}}>{cbeSubmitMsg}</div>}
             </div>
           </div>
         </div>

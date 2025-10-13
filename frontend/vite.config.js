@@ -10,7 +10,7 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '127.0.0.1',
-      'uncertainty-violation-occupational-bowl.trycloudflare.com',
+      'mount-surgeons-columnists-alcohol.trycloudflare.com',
       /^.+\.trycloudflare\.com$/,
     ],
     host: true,

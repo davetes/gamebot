@@ -183,15 +183,16 @@ export default function Play() {
       {/* Game overlay after countdown finishes */}
       {phase === 'started' && (
         <div style={{position:'fixed', inset:0, background:'linear-gradient(180deg,#330a5c,#2a0845)', overflowY:'auto', zIndex:1000, padding:'12px'}}>
-          <div style={{display:'flex', gap:8, flexWrap:'wrap', alignItems:'center'}}>
-            <div style={{background:'#5e2b91', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:200}}>Call {calls.length}</div>
-            <div style={{background:'#1e90ff', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:200}}>Players 50</div>
-            <div style={{background:'#2e8b57', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:200}}>Stake {stake}</div>
-            <div style={{background:'#2e8b57', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:200}}>Derash 400</div>
-            <div style={{background:'#2d3436', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:200}}>Game {gameId}</div>
-            {/* Bonus toggle and sound icon */}
-            <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:8}}>
-              <div style={{background:'#3b2f75', color:'#fff', padding:'6px 10px', borderRadius:18, fontWeight:800, display:'flex', alignItems:'center', gap:10}}>
+          <div style={{display:'flex', flexDirection:'column', gap:6}}>
+            <div style={{display:'flex', gap:6, flexWrap:'nowrap', alignItems:'center', width:'100%', justifyContent:'space-between'}}>
+              <div style={{background:'#5e2b91', color:'#fff', padding:'4px 8px', borderRadius:18, fontWeight:700, whiteSpace:'nowrap', flex:'1 1 0', textAlign:'center'}}>Call {calls.length}</div>
+              <div style={{background:'#1e90ff', color:'#fff', padding:'4px 8px', borderRadius:18, fontWeight:700, whiteSpace:'nowrap', flex:'1 1 0', textAlign:'center'}}>Players 50</div>
+              <div style={{background:'#2e8b57', color:'#fff', padding:'4px 8px', borderRadius:18, fontWeight:700, whiteSpace:'nowrap', flex:'1 1 0', textAlign:'center'}}>Stake {stake}</div>
+              <div style={{background:'#2e8b57', color:'#fff', padding:'4px 8px', borderRadius:18, fontWeight:700, whiteSpace:'nowrap', flex:'1 1 0', textAlign:'center'}}>Derash 400</div>
+            </div>
+            <div style={{display:'flex', gap:6, alignItems:'center', flexWrap:'nowrap', justifyContent:'space-between', width:'100%'}}>
+              <div style={{background:'#2d3436', color:'#fff', padding:'4px 8px', borderRadius:18, fontWeight:700, whiteSpace:'nowrap'}}>Game {gameId}</div>
+              <div style={{background:'#3b2f75', color:'#fff', padding:'4px 8px', borderRadius:18, fontWeight:800, display:'flex', alignItems:'center', gap:8, whiteSpace:'nowrap'}}>
                 <span>Bonus</span>
                 <label style={{display:'inline-flex', alignItems:'center', gap:6, cursor:'pointer'}}>
                   <input type="checkbox" checked={bonusOn} onChange={(e)=>setBonusOn(e.target.checked)} style={{display:'none'}} />
@@ -200,8 +201,8 @@ export default function Play() {
                   </span>
                 </label>
               </div>
-              <button onClick={()=>setMuted(m=>!m)} aria-label="toggle-sound" style={{background:'#ffcc66', border:'none', color:'#3b0066', fontWeight:900, padding:'6px 10px', borderRadius:18}}>{muted ? '🔇' : '🔊'}</button>
-          </div>
+              <button onClick={()=>setMuted(m=>!m)} aria-label="toggle-sound" style={{background:'#ffcc66', border:'none', color:'#3b0066', fontWeight:900, padding:'6px 10px', borderRadius:18, whiteSpace:'nowrap'}}>{muted ? '🔇' : '🔊'}</button>
+            </div>
           </div>
 
           {/* call board */}
@@ -221,19 +222,18 @@ export default function Play() {
             ))}
           </div>
 
-          {/* current ball and recent balls row */}
-          <div style={{display:'flex', flexDirection:'column', alignItems:'center', margin:'14px 0'}}>
-            {/* Lettered big ball */}
+          {/* current ball and recent balls row (horizontal) */}
+          <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:10, margin:'14px 0'}}>
             {(() => { const n = currentNumber || 0; const letters = ['B','I','N','G','O']; const letter = n? letters[Math.floor((n-1)/15)] : ''; return (
-              <div style={{position:'relative'}}>
-                <div style={{width:96, height:96, borderRadius:'50%', background:'#ff5e57', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:36, boxShadow:'0 10px 30px rgba(0,0,0,.25)'}}>
-                  {n || '--'}
+              <div style={{width:64, height:64, borderRadius:'50%', background:'#ff5e57', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, boxShadow:'0 10px 20px rgba(0,0,0,.20)'}}>
+                <div style={{display:'flex', flexDirection:'column', alignItems:'center', lineHeight:1}}>
+                  <span style={{fontSize:12}}>{letter}</span>
+                  <span style={{fontSize:26}}>{n || '--'}</span>
                 </div>
-                <div style={{position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'#fff', color:'#d82e5f', width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900}}>{letter}</div>
               </div>
             )})()}
             {/* recent balls with letter colors */}
-            <div style={{display:'flex', gap:8, marginTop:10}}>
+            <div style={{display:'flex', gap:8}}>
               {calls.slice(-5).map((n, idx) => { const col = ['#2ecc71','#e74c3c','#f1c40f','#3498db','#9b59b6'][Math.floor((n-1)/15)]; return (
                 <div key={idx} style={{width:36, height:36, borderRadius:'50%', background:col, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900}}>{n}</div>
               )})}
@@ -264,15 +264,16 @@ export default function Play() {
               ))}
             </div>
             {/* Left/right arrows */}
-            <button aria-label="prev" style={{position:'absolute', left:-12, top:'50%', transform:'translateY(-50%)', width:28, height:28, borderRadius:'50%', border:'none', background:'#6d2ca3', color:'#fff', fontWeight:900}}>{'<'}</button>
+          {/* <button aria-label="prev" style={{position:'absolute', left:-12, top:'50%', transform:'translateY(-50%)', width:28, height:28, borderRadius:'50%', border:'none', background:'#6d2ca3', color:'#fff', fontWeight:900}}>{'<'}</button>
             <button aria-label="next" style={{position:'absolute', right:-12, top:'50%', transform:'translateY(-50%)', width:28, height:28, borderRadius:'50%', border:'none', background:'#6d2ca3', color:'#fff', fontWeight:900}}>{'>'}</button>
-            <div style={{display:'flex', justifyContent:'center', marginTop:14}}>
+             */}
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:14}}>
+              <div style={{width:42, height:42, borderRadius:'50%', background:'#2d7ef7', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900}}>{currentNumber ?? ''}</div>
               <button style={{background:'linear-gradient(#ffdf6e,#d4ac0d)', color:'#2b2b2b', border:'none', borderRadius:12, padding:'12px 20px', fontWeight:900, boxShadow:'0 4px 12px rgba(0,0,0,.25)'}}>BINGO</button>
             </div>
           </div>
 
           {/* bottom-left blue chip */}
-          <div style={{position:'fixed', left:10, bottom:14, width:42, height:42, borderRadius:'50%', background:'#2d7ef7', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900}}>{currentNumber ?? ''}</div>
         </div>
       )}
       <div className="stats">
@@ -363,7 +364,7 @@ export default function Play() {
             </div>
             <div className="modal-body" style={{padding:10}}>
               <div className="card-grid" style={{
-                display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:3, background:'#ffa63a', borderRadius:12, padding:4, border:'3px solid #e08924'
+                display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:3, background:'linear-gradient(#6d2ca3,#4a1571)', borderRadius:12, padding:6, border:'3px solid rgba(255,255,255,0.25)'
               }}>
                 {['B','I','N','G','O'].map((h, i) => (
                   <span

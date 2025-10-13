@@ -3,8 +3,11 @@ import sqlite3
 from pathlib import Path
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_GET, require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from bots.deposit import ensure_admin_txns_table
+import os
+import requests
 
 DB_FILE = str(Path(settings.BASE_DIR).parent / "usage.db")
 
@@ -284,6 +287,8 @@ def bulk_add_admin_txns(request):
                         skipped += 1
                 conn.commit()
                 return _cors(JsonResponse({"ok": True, "added": added, "skipped": skipped}))
+
+
         except Exception:
             pass
 
@@ -318,3 +323,76 @@ def bulk_add_admin_txns(request):
     finally:
         conn.close()
     return _cors(JsonResponse({"ok": True, "added": added, "skipped": skipped}))
+
+# --------------------------
+# Public: Support upload API
+# --------------------------
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def upload_receipt(request):
+    """Accept a receipt image and forward it to SUPPORT_TARGET with caption.
+
+    Expects multipart/form-data fields:
+      - method: str (e.g., telebirr, cbe, cbe-birr, boa)
+      - amount: str/number
+      - user_id: int (Telegram user id)
+      - username: str (Telegram username, optional)
+      - full_name: str (Telegram full name, optional)
+      - photo: file (image)
+    """
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        return _cors(JsonResponse({"error": "bot_token_missing"}, status=500))
+
+    support_target = os.environ.get("SUPPORT_TARGET", "@Afamedawa")
+
+    method = (request.POST.get("method") or "-").strip()
+    amount = (request.POST.get("amount") or "-").strip()
+    user_id = request.POST.get("user_id")
+    username = (request.POST.get("username") or "-").strip()
+    full_name = (request.POST.get("full_name") or "-").strip()
+
+    photo = request.FILES.get("photo")
+    if not photo:
+        return _cors(JsonResponse({"error": "missing_photo"}, status=400))
+    if not user_id:
+        return _cors(JsonResponse({"error": "missing_user_id"}, status=400))
+
+    # Lookup phone from DB
+    phone = None
+    try:
+        conn = _get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT phone FROM users WHERE user_id = ?", (int(user_id),))
+        row = cur.fetchone()
+        phone = row[0] if row else None
+    except Exception:
+        phone = None
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+    caption = (
+        "Deposit receipt\n"
+        f"Method: {method}\n"
+        f"Amount: {amount} ETB\n"
+        f"From: {full_name} (@{username}, id:{user_id})\n"
+        f"Phone: {phone or '-'}"
+    )
+
+    api_url = f"https://api.telegram.org/bot{token}/sendPhoto"
+    files = {"photo": (photo.name, photo.read(), photo.content_type or "application/octet-stream")}
+    data = {"chat_id": support_target, "caption": caption}
+
+    try:
+        r = requests.post(api_url, data=data, files=files, timeout=30)
+        ok = r.status_code == 200 and (r.json().get("ok") if r.headers.get("content-type","" ).startswith("application/json") else True)
+        if not ok:
+            return _cors(JsonResponse({"error": "telegram_send_failed", "details": r.text}, status=502))
+    except Exception as e:
+        return _cors(JsonResponse({"error": "telegram_send_exception", "details": str(e)}, status=502))
+
+    return _cors(JsonResponse({"ok": True}))
