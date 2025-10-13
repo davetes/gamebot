@@ -184,11 +184,11 @@ export default function Play() {
       {phase === 'started' && (
         <div style={{position:'fixed', inset:0, background:'linear-gradient(180deg,#330a5c,#2a0845)', overflowY:'auto', zIndex:1000, padding:'12px'}}>
           <div style={{display:'flex', gap:8, flexWrap:'wrap', alignItems:'center'}}>
-            <div style={{background:'#5e2b91', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:800}}>Call {calls.length}</div>
-            <div style={{background:'#1e90ff', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:800}}>Players 50</div>
-            <div style={{background:'#2e8b57', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:800}}>Stake {stake}</div>
-            <div style={{background:'#2e8b57', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:800}}>Derash 400</div>
-            <div style={{background:'#2d3436', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:800}}>Game {gameId}</div>
+            <div style={{background:'#5e2b91', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:200}}>Call {calls.length}</div>
+            <div style={{background:'#1e90ff', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:200}}>Players 50</div>
+            <div style={{background:'#2e8b57', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:200}}>Stake {stake}</div>
+            <div style={{background:'#2e8b57', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:200}}>Derash 400</div>
+            <div style={{background:'#2d3436', color:'#fff', padding:'6px 12px', borderRadius:18, fontWeight:200}}>Game {gameId}</div>
             {/* Bonus toggle and sound icon */}
             <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:8}}>
               <div style={{background:'#3b2f75', color:'#fff', padding:'6px 10px', borderRadius:18, fontWeight:800, display:'flex', alignItems:'center', gap:10}}>
@@ -361,33 +361,35 @@ export default function Play() {
               </div>
               <button className="modal-close" style={{background:'transparent', border:'none', fontSize:22, lineHeight:1, cursor:'pointer'}} onClick={() => setPreview(null)}>×</button>
             </div>
-            <div className="modal-body" style={{padding:14}}>
-              <div className="bingo-head" style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:6, marginBottom:8}}>
-                <span className="b" style={{display:'block', textAlign:'center', color:'#fff', fontWeight:900, borderRadius:8, padding:'6px 0', background:'#2ecc71'}}>B</span>
-                <span className="i" style={{display:'block', textAlign:'center', color:'#fff', fontWeight:900, borderRadius:8, padding:'6px 0', background:'#e74c3c'}}>I</span>
-                <span className="n" style={{display:'block', textAlign:'center', color:'#fff', fontWeight:900, borderRadius:8, padding:'6px 0', background:'#f1c40f'}}>N</span>
-                <span className="g" style={{display:'block', textAlign:'center', color:'#fff', fontWeight:900, borderRadius:8, padding:'6px 0', background:'#3498db'}}>G</span>
-                <span className="o" style={{display:'block', textAlign:'center', color:'#fff', fontWeight:900, borderRadius:8, padding:'6px 0', background:'#9b59b6'}}>O</span>
-              </div>
+            <div className="modal-body" style={{padding:10}}>
               <div className="card-grid" style={{
-                display:'flex', flexDirection:'column', gap:6, background:'#ffa63a', borderRadius:12, padding:8, border:'3px solid #e08924'
+                display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:3, background:'#ffa63a', borderRadius:12, padding:4, border:'3px solid #e08924'
               }}>
-                {getCard(preview).map((row, ri) => (
-                  <div className="row" key={ri} style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:6}}>
-                    {row.map((val, ci) => (
-                      <div
-                        className={val === '★' ? 'cg-cell free' : 'cg-cell'}
-                        key={ci}
-                        style={{
-                          background: val === '★' ? '#1f7a4f' : '#222',
-                          borderRadius: 10, color: '#fff', textAlign:'center', padding:'10px 0', fontWeight:800
-                        }}
-                      >
-                        {val}
-                      </div>
-                    ))}
-                  </div>
+                {['B','I','N','G','O'].map((h, i) => (
+                  <span
+                    key={i}
+                    className={h.toLowerCase()}
+                    style={{
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      color:'#fff', fontWeight:900, borderRadius:8, fontSize:14,
+                      aspectRatio:'1 / 1',
+                      background: ({B:'#2ecc71', I:'#e74c3c', N:'#f1c40f', G:'#3498db', O:'#9b59b6'})[h]
+                    }}
+                  >{h}</span>
                 ))}
+                {(() => { const flat = getCard(preview).flat(); return flat.map((val, idx) => (
+                  <div
+                    key={idx}
+                    className={val === '★' ? 'cg-cell free' : 'cg-cell'}
+                    style={{
+                      background: val === '★' ? '#1f7a4f' : '#fff',
+                      borderRadius: 10, color: val === '★' ? '#fff' : '#222', fontWeight:800,
+                      aspectRatio: '1 / 1', display:'flex', alignItems:'center', justifyContent:'center', padding:0, fontSize:14
+                    }}
+                  >
+                    {val}
+                  </div>
+                )) })()}
               </div>
 
               <div className="preview-actions" style={{display:'flex', gap:10, justifyContent:'center', marginTop:12}}>

@@ -3,7 +3,7 @@
 
 /* header stats (fixed) */
 .stats{display:flex;gap:8px;flex-wrap:wrap;background:#fff;border-radius:10px;color:#222;padding:8px;justify-content:space-between;position:relative;z-index:2}
-.stat{background:#eaf2ff;border:1px solid #c7d8ff;border-radius:8px;padding:3px 8px;flex:1;text-align:center}
+.stat{background:#eaf2ff;border:1px solid #6690f1;border-radius:8px;padding:3px 8px;flex:1;text-align:center}
 .stat strong{display:block;font-size:14px;margin-top:2px}
 
 /* scrollable middle */
